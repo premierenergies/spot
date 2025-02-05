@@ -107,6 +107,14 @@ const FAQ = () => {
               <Question>What happens when a ticket is closed?</Question>
               <Answer>Once a ticket is closed, it will be moved to the "Closed" section of your dashboard. You can still view all closed tickets and their history for your records.</Answer>
             </FAQItem>
+            <FAQItem>
+              <Question>What is the difference between ticket status closed and resolved?</Question>
+              <Answer>Once an assignee completes the task/issue assigned to them, they will mark it as resolved, if the user is satisfied, he will accept the resolution and the ticket will be marked as closed. If not, user can reopen the ticket. If neither action is taken by user one week after the task/issue was marked as resolved, the ticket status is automatically marked as closed.</Answer>
+            </FAQItem>
+            <FAQItem>
+              <Question>What are priority tasks?</Question>
+              <Answer>Tasks with priority status marked as high are considered priority tasks.</Answer>
+            </FAQItem>
           </FAQSection>
         </Content>
       </Container>
