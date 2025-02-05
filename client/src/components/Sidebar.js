@@ -40,6 +40,8 @@ const SidebarToggle = styled.div`
 
 const SidebarItem = styled.div`
   margin-bottom: 15px;
+  position: relative;
+  z-index: 2000;
   font-size: 18px;
   cursor: pointer;
   background-color: ${(props) => (props.active ? "#FFFFFF" : "transparent")};

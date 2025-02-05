@@ -25,6 +25,7 @@ const LeftLogoStyled = styled.img`
   position: absolute; /* Position the logo relative to the LeftSection */
   left: 0; /* Align to the left */
   top: 0;
+  z-index:1001;
   transform: translateY(-50%); /* Center vertically */
   height: 300px; /* Larger size for the logo */
 `;
