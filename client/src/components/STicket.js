@@ -4,6 +4,7 @@ import { Form, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import axios from "axios";
 const API_BASE_URL = window.location.origin;
+
 const Container = styled.div`
   display: flex;
   min-height: calc(100vh - 70px);
@@ -45,7 +46,7 @@ const Title = styled.h1`
 `;
 
 const BackButton = styled.button`
-  position: absolute; /* Positioning the button in the top-left corner */
+  position: absolute;
   top: 40px;
   left: 40px;
   background-color: #0f6ab0;
@@ -170,7 +171,7 @@ const HistoryPanel = styled.div`
   position: absolute;
   top: 20px;
   right: 20px;
-  width: 360px; /* Increase width for more spacious layout */
+  width: 360px;
   max-height: calc(100% - 40px);
   background-color: #fff;
   border-radius: 10px;
@@ -241,6 +242,21 @@ const HistoryToggleButton = styled.button`
   }
 `;
 
+/* Helper function to fix reporter name duplication.
+   If the name is exactly repeated twice (e.g. "Aarnav SinghAarnav Singh"),
+   it returns only the first half. Otherwise, it returns the original name. */
+const formatReporterName = (name) => {
+  if (!name) return "";
+  const len = name.length;
+  if (len % 2 === 0) {
+    const half = len / 2;
+    if (name.slice(0, half) === name.slice(half)) {
+      return name.slice(0, half);
+    }
+  }
+  return name;
+};
+
 const STicket = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -252,25 +268,20 @@ const STicket = () => {
       : `${userEmail}@premierenergies.com`;
   });
 
+  // Determine user role: reporter vs. assignee.
+  const isReporter = emailUser === ticket.Reporter_Email;
+  const isAssignee = !isReporter;
+
   const [updatedExpectedDate, setUpdatedExpectedDate] = useState(
     ticket.Expected_Completion_Date
       ? new Date(ticket.Expected_Completion_Date).toISOString().split("T")[0]
       : ""
   );
-
-  const [updatedPriority, setUpdatedPriority] = useState(
-    ticket.Ticket_Priority || ""
-  );
+  const [updatedPriority, setUpdatedPriority] = useState(ticket.Ticket_Priority || "");
   const [updatedStatus, setUpdatedStatus] = useState(ticket.TStatus || "");
-  const [updatedAssigneeDept, setUpdatedAssigneeDept] = useState(
-    ticket.Assignee_Dept || ""
-  );
-  const [updatedAssigneeSubDept, setUpdatedAssigneeSubDept] = useState(
-    ticket.Assignee_SubDept || ""
-  );
-  const [updatedAssigneeEmpID, setUpdatedAssigneeEmpID] = useState(
-    ticket.Assignee_EmpID || ""
-  );
+  const [updatedAssigneeDept, setUpdatedAssigneeDept] = useState(ticket.Assignee_Dept || "");
+  const [updatedAssigneeSubDept, setUpdatedAssigneeSubDept] = useState(ticket.Assignee_SubDept || "");
+  const [updatedAssigneeEmpID, setUpdatedAssigneeEmpID] = useState(ticket.Assignee_EmpID || "");
   const [remarks, setRemarks] = useState("");
 
   const [assigneeDepts, setAssigneeDepts] = useState([]);
@@ -280,7 +291,7 @@ const STicket = () => {
   const [history, setHistory] = useState([]);
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
 
-  // Fetching ticket history
+  // Fetch ticket history
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -295,7 +306,7 @@ const STicket = () => {
     fetchHistory();
   }, [ticket.Ticket_Number]);
 
-  // Fetching all departments
+  // Fetch all departments
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
@@ -308,7 +319,7 @@ const STicket = () => {
     fetchDepartments();
   }, []);
 
-  // Fetching sub-departments when department changes
+  // Fetch sub-departments when department changes
   useEffect(() => {
     if (updatedAssigneeDept) {
       axios
@@ -332,7 +343,7 @@ const STicket = () => {
     }
   }, [updatedAssigneeDept]);
 
-  // Fetching employees when sub-department changes
+  // Fetch employees when sub-department changes
   useEffect(() => {
     if (updatedAssigneeDept && updatedAssigneeSubDept) {
       axios
@@ -344,9 +355,7 @@ const STicket = () => {
         })
         .then((response) => {
           setAssigneeEmpIDs(response.data);
-          if (
-            !response.data.some((emp) => emp.EmpID === updatedAssigneeEmpID)
-          ) {
+          if (!response.data.some((emp) => emp.EmpID === updatedAssigneeEmpID)) {
             setUpdatedAssigneeEmpID("");
           }
         })
@@ -408,7 +417,7 @@ const STicket = () => {
               <strong>Description:</strong> {ticket.Ticket_Description}
             </DetailRow>
             <DetailRow>
-              <strong>Reporter Name:</strong> {ticket.Reporter_Name}
+              <strong>Reporter Name:</strong> {formatReporterName(ticket.Reporter_Name)}
             </DetailRow>
             <DetailRow>
               <strong>Reporter Email:</strong> {ticket.Reporter_Email}
@@ -428,12 +437,13 @@ const STicket = () => {
               </DetailRow>
             )}
 
-            {/* Editable fields */}
+            {/* Editable fields (only editable by assignee) */}
             <FormRow>
               <Label>Status:</Label>
               <Select
                 value={updatedStatus}
                 onChange={(e) => setUpdatedStatus(e.target.value)}
+                disabled={!isAssignee}
               >
                 <option value="">Select Status</option>
                 <option value="In-Progress">In-Progress</option>
@@ -442,7 +452,8 @@ const STicket = () => {
               </Select>
             </FormRow>
 
-            {updatedStatus === "Resolved" && (
+            {/* Resolution actions: only show if current user is the reporter */}
+            {isReporter && updatedStatus === "Resolved" && (
               <div style={{ marginTop: "20px", marginBottom: "20px" }}>
                 <h3>
                   This ticket has been resolved. Please accept or reject the
@@ -460,14 +471,11 @@ const STicket = () => {
                   }}
                   onClick={async () => {
                     try {
-                      await axios.post(
-                        `${API_BASE_URL}/api/tickets/respond-resolution`,
-                        {
-                          ticketNumber: ticket.Ticket_Number,
-                          action: "accept",
-                          userID: emailUser,
-                        }
-                      );
+                      await axios.post(`${API_BASE_URL}/api/tickets/respond-resolution`, {
+                        ticketNumber: ticket.Ticket_Number,
+                        action: "accept",
+                        userID: emailUser,
+                      });
                       alert("Resolution accepted. Ticket will be closed.");
                       navigate("/profile");
                     } catch (error) {
@@ -489,17 +497,12 @@ const STicket = () => {
                   }}
                   onClick={async () => {
                     try {
-                      await axios.post(
-                        `${API_BASE_URL}/api/tickets/respond-resolution`,
-                        {
-                          ticketNumber: ticket.Ticket_Number,
-                          action: "reject",
-                          userID: emailUser,
-                        }
-                      );
-                      alert(
-                        "Ticket re-opened. Ticket will be marked as In-Progress."
-                      );
+                      await axios.post(`${API_BASE_URL}/api/tickets/respond-resolution`, {
+                        ticketNumber: ticket.Ticket_Number,
+                        action: "reject",
+                        userID: emailUser,
+                      });
+                      alert("Ticket re-opened. Ticket will be marked as In-Progress.");
                       navigate("/profile");
                     } catch (error) {
                       console.error("Error re-opening ticket:", error);
@@ -516,6 +519,7 @@ const STicket = () => {
               <Select
                 value={updatedAssigneeDept}
                 onChange={(e) => setUpdatedAssigneeDept(e.target.value)}
+                disabled={!isAssignee}
               >
                 <option value="">Select Department</option>
                 {assigneeDepts.map((dept) => (
@@ -531,7 +535,7 @@ const STicket = () => {
               <Select
                 value={updatedAssigneeSubDept}
                 onChange={(e) => setUpdatedAssigneeSubDept(e.target.value)}
-                disabled={!updatedAssigneeDept}
+                disabled={!isAssignee || !updatedAssigneeDept}
               >
                 <option value="">Select SubDept</option>
                 {assigneeSubDepts.map((subDept) => (
@@ -547,7 +551,7 @@ const STicket = () => {
               <Select
                 value={updatedAssigneeEmpID}
                 onChange={(e) => setUpdatedAssigneeEmpID(e.target.value)}
-                disabled={!updatedAssigneeSubDept}
+                disabled={!isAssignee || !updatedAssigneeSubDept}
               >
                 <option value="">Select Employee</option>
                 {assigneeEmpIDs.map((emp) => (
@@ -564,6 +568,7 @@ const STicket = () => {
                 type="date"
                 value={updatedExpectedDate}
                 onChange={(e) => setUpdatedExpectedDate(e.target.value)}
+                disabled={!isAssignee}
               />
             </FormRow>
 
@@ -572,6 +577,7 @@ const STicket = () => {
               <Select
                 value={updatedPriority}
                 onChange={(e) => setUpdatedPriority(e.target.value)}
+                disabled={!isAssignee}
               >
                 <option value="">Select Priority</option>
                 <option value="High">High</option>
@@ -586,12 +592,15 @@ const STicket = () => {
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Add any remarks (optional)"
+                disabled={!isAssignee}
               />
             </FormRow>
 
-            <SubmitButton type="button" onClick={(e) => handleUpdateTicket(e)}>
-              Submit
-            </SubmitButton>
+            {isAssignee && (
+              <SubmitButton type="button" onClick={(e) => handleUpdateTicket(e)}>
+                Submit
+              </SubmitButton>
+            )}
           </TicketDetails>
 
           <HistoryToggleButton

@@ -240,13 +240,29 @@ app.post("/api/register", async (req, res) => {
     // Connect to the database
     await sql.connect(dbConfig);
 
-    // Update the password in the Login table
-    await sql.query`
-        UPDATE Login SET LPassword = ${password}
-        WHERE Username = ${fullEmail}
-      `;
+    // Check if the account already exists (i.e. if LPassword is already set)
+    const checkResult = await sql.query`
+      SELECT LPassword FROM Login WHERE Username = ${fullEmail}
+    `;
+    if (
+      checkResult.recordset.length > 0 &&
+      checkResult.recordset[0].LPassword !== null
+    ) {
+      // Account already registered – do not update password, return an error
+      return res.status(400).json({
+        message: "An account already exists with this account",
+      });
+    }
 
-    res.status(200).json({ message: "Registration completed successfully" });
+    // Otherwise update the password in the Login table (complete registration)
+    await sql.query`
+      UPDATE Login SET LPassword = ${password}
+      WHERE Username = ${fullEmail}
+    `;
+
+    res
+      .status(200)
+      .json({ message: "Registration completed successfully" });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -670,15 +686,14 @@ app.get("/api/tickets", async (req, res) => {
     if (mode === "assignedToMe") {
       ticketsResult = await sql.query`
         SELECT 
-          T.*,
-          E.EmpName AS Reporter_Name,
+          T.*, 
           A.EmpName AS Assignee_Name
         FROM Tickets T
-        LEFT JOIN EMP E ON T.Reporter_EmpID = E.EmpID
         LEFT JOIN EMP A ON T.Assignee_EmpID = A.EmpID
         WHERE T.Assignee_EmpID = ${empID}
       `;
-    } else if (mode === "assignedByMe") {
+    }
+     else if (mode === "assignedByMe") {
       ticketsResult = await sql.query`
         SELECT 
           T.*,

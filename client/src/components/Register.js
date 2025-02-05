@@ -15,7 +15,6 @@ const Container = styled.div`
   }
 `;
 
-
 const Content = styled.div`
   background-color: transparent;
   padding: 30px 30px 40px 30px;
@@ -157,12 +156,9 @@ const Register = () => {
     if (step === 1) {
       // Send OTP logic here
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/api/send-otp`,
-          {
-            email: emailUser,
-          }
-        );
+        const response = await axios.post(`${API_BASE_URL}/api/send-otp`, {
+          email: emailUser,
+        });
         console.log(response.data);
         setStep(2);
         setButtonText("Verify OTP");
@@ -170,7 +166,18 @@ const Register = () => {
         setSuccessMessage("OTP sent successfully to your email.");
       } catch (error) {
         if (error.response && error.response.data) {
-          setErrorMessage(error.response.data.message);
+          // If the account is already registered, display the message and redirect
+          if (
+            error.response.data.message ===
+            "An account already exists with this account"
+          ) {
+            setErrorMessage(error.response.data.message);
+            setTimeout(() => {
+              navigate("/login");
+            }, 2000);
+          } else {
+            setErrorMessage(error.response.data.message);
+          }
         } else {
           setErrorMessage("An error occurred. Please try again.");
         }
@@ -179,13 +186,10 @@ const Register = () => {
     } else if (step === 2) {
       // Verify OTP logic here
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/api/verify-otp`,
-          {
-            email: emailUser,
-            otp: otp,
-          }
-        );
+        const response = await axios.post(`${API_BASE_URL}/api/verify-otp`, {
+          email: emailUser,
+          otp: otp,
+        });
         console.log(response.data);
         setStep(3);
         setButtonText("Register");
@@ -207,13 +211,10 @@ const Register = () => {
         return;
       }
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/api/register`,
-          {
-            email: emailUser,
-            password: password,
-          }
-        );
+        const response = await axios.post(`${API_BASE_URL}/api/register`, {
+          email: emailUser,
+          password: password,
+        });
         console.log(response.data);
         setErrorMessage("");
         setSuccessMessage("Registration completed successfully.");
@@ -223,7 +224,18 @@ const Register = () => {
         }, 2000);
       } catch (error) {
         if (error.response && error.response.data) {
-          setErrorMessage(error.response.data.message);
+          // Check for the specific error message returned when an account exists
+          if (
+            error.response.data.message ===
+            "An account already exists with this account"
+          ) {
+            setErrorMessage(error.response.data.message);
+            setTimeout(() => {
+              navigate("/login");
+            }, 2000);
+          } else {
+            setErrorMessage(error.response.data.message);
+          }
         } else {
           setErrorMessage("An error occurred during registration.");
         }

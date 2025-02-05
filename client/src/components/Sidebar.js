@@ -15,9 +15,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 const API_BASE_URL = window.location.origin;
+
 const SidebarContainer = styled.div`
   width: ${(props) => (props.collapsed ? "60px" : "250px")};
-
   background-color: #bebebe;
   color: #ffffff;
   display: flex;
@@ -34,6 +34,8 @@ const SidebarToggle = styled.div`
   margin-bottom: 20px;
   font-size: 24px;
   color: #ffffff;
+  position: relative;
+  z-index: 2000;
 `;
 
 const SidebarItem = styled.div`
@@ -87,12 +89,9 @@ const Sidebar = ({ activeTab }) => {
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/notifications`,
-          {
-            params: { userID: fullEmailUser },
-          }
-        );
+        const response = await axios.get(`${API_BASE_URL}/api/notifications`, {
+          params: { userID: fullEmailUser },
+        });
         console.log("Unread notifications count:", response.data.unreadCount);
         setUnreadCount(response.data.unreadCount);
       } catch (error) {
@@ -101,9 +100,9 @@ const Sidebar = ({ activeTab }) => {
     };
 
     fetchUnreadCount();
-  }, []);
+  }, [fullEmailUser]);
 
-  // NEW: Check if the user is an HOD
+  // Check if the user is an HOD
   useEffect(() => {
     const checkHOD = async () => {
       if (empID) {
@@ -120,26 +119,19 @@ const Sidebar = ({ activeTab }) => {
     checkHOD();
   }, [empID]);
 
-  // Fetch the user's department from the EMP table and then the HODID from the HOD table
+  // Fetch the user's department and then HODID for verification (for logging purposes)
   useEffect(() => {
     const fetchDeptAndHODID = async () => {
       if (storedUsername && empID) {
         try {
-          // Fetch user details to get department
           const userResponse = await axios.get(`${API_BASE_URL}/api/user`, {
             params: { email: storedUsername },
           });
-          
           const userDept = userResponse.data.Dept;
-
-          // Now fetch HODID for this department from HOD table
           const hodResponse = await axios.get(`${API_BASE_URL}/api/getHODForDept`, {
             params: { dept: userDept },
           });
-          
           const hodID = hodResponse.data.HODID;
-
-          // Log EmpID and HODID for verification
           console.log("Logged in EmpID:", empID);
           console.log("User's Department:", userDept);
           console.log("HODID for user's department:", hodID);
@@ -213,9 +205,7 @@ const Sidebar = ({ activeTab }) => {
           onClick={() => handleNavigation("/team")}
         >
           <FaUsers />
-          <SidebarItemText collapsed={collapsed}>
-            Team Structure
-          </SidebarItemText>
+          <SidebarItemText collapsed={collapsed}>Team Structure</SidebarItemText>
         </SidebarItem>
 
         <SidebarItem

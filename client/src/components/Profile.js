@@ -31,7 +31,6 @@ const PercentageChange = styled.div`
 const Content = styled.div`
   flex: 1;
   padding: 40px;
-
   box-sizing: border-box;
   background-color: #ffffff;
   border-radius: 10px;
