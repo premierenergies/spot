@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import BackgroundImage from "../assets/project-logo.png";
+
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -15,18 +15,6 @@ const Container = styled.div`
   }
 `;
 
-const Background = styled.div`
-  background-image: url(${BackgroundImage});
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  position: fixed; /* Changed from absolute to fixed */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -2; /* Adjusted z-index */
-`;
 
 const Content = styled.div`
   background-color: transparent;
@@ -103,7 +91,7 @@ const FixedText = styled.span`
   transform: translateY(-50%);
   font-size: 16px;
   font-family: "Montserrat";
-  color: #61b847;
+  color: black;
   user-select: none;
   pointer-events: none;
   white-space: nowrap;
@@ -246,7 +234,6 @@ const Register = () => {
 
   return (
     <Container>
-      <Background />
       <Content>
         <Heading>Verify Your Account</Heading>
         <Paragraph>Register with your Premier Energies email</Paragraph>

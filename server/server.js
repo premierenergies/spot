@@ -4,6 +4,10 @@ const sql = require("mssql");
 const dotenv = require("dotenv");
 const { Client } = require("@microsoft/microsoft-graph-client");
 const { ClientSecretCredential } = require("@azure/identity");
+const multer = require("multer"); 
+const upload = multer({ dest: "uploads/" });
+
+const fs = require("fs");
 require("isomorphic-fetch");
 
 dotenv.config();
@@ -33,15 +37,12 @@ app.options("*", cors());
 app.use(express.json()); // Middleware to parse JSON
 app.use(express.static(path.join(__dirname, "..", "client", "build")));
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "client", "build", "index.html"));
-});
 
 // Database configuration
 const dbConfig = {
-  user: "sa",
-  password: "Pel@1729",
-  server: "14.194.111.58",
+  user: "SPOT_USER",
+  password: "Premier#3801",
+  server: "10.0.40.10",
   port: 1433,
   database: "SPOT",
   options: {
@@ -103,7 +104,7 @@ const client = Client.initWithMiddleware({
 });
 
 // Function to send an email using Microsoft Graph API
-async function sendEmail(toEmail, subject, content) {
+async function sendEmail(toEmail, subject, content, attachments = []) {
   try {
     const message = {
       subject: subject,
@@ -120,6 +121,16 @@ async function sendEmail(toEmail, subject, content) {
       ],
     };
 
+    // If attachments were passed, add them to the message
+    if (attachments && attachments.length > 0) {
+      message.attachments = attachments.map(file => ({
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        Name: file.originalname,           // the original file name
+        ContentType: file.mimetype,          // MIME type of the file
+        ContentBytes: fs.readFileSync(file.path, { encoding: "base64" }),
+      }));
+    }
+
     await client
       .api(`/users/${SENDER_EMAIL}/sendMail`)
       .post({ message, saveToSentItems: "true" });
@@ -130,6 +141,7 @@ async function sendEmail(toEmail, subject, content) {
     throw error;
   }
 }
+
 
 // API endpoint to handle OTP requests
 app.post("/api/send-otp", async (req, res) => {
@@ -350,7 +362,7 @@ app.get("/api/tasklabels", async (req, res) => {
 });
 
 // API endpoint to create a ticket
-app.post("/api/create-ticket", async (req, res) => {
+app.post("/api/create-ticket", upload.array("attachments"), async (req, res) => {
   const {
     title,
     type,
@@ -362,6 +374,15 @@ app.post("/api/create-ticket", async (req, res) => {
     description,
     reporterEmail,
   } = req.body;
+
+  // Log files if provided
+  if (req.files && req.files.length > 0) {
+    console.log("Received attachments:", req.files);
+  }
+  // Choose the first attachment's filename if any
+  const attachmentFile = (req.files && req.files.length > 0)
+    ? req.files[0].filename
+    : null;
 
   const fullReporterEmail = `${reporterEmail}@premierenergies.com`;
 
@@ -383,7 +404,9 @@ app.post("/api/create-ticket", async (req, res) => {
 
     // Get reporter's details from EMP table
     const reporterResult = await sql.query`
-        SELECT EmpID, EmpLocation, Dept, EmpName, EmpEmail FROM EMP WHERE EmpEmail = ${fullReporterEmail}
+        SELECT EmpID, EmpLocation, Dept, EmpName, EmpEmail 
+        FROM EMP 
+        WHERE EmpEmail = ${fullReporterEmail}
       `;
 
     console.log("Reporter query result:", reporterResult.recordset);
@@ -419,13 +442,13 @@ app.post("/api/create-ticket", async (req, res) => {
     });
 
     const assigneeResult = await sql.query`
-    SELECT Assignee_EmpID FROM Assignee
-    WHERE EmpLocation = ${empLocation} 
-      AND Department = ${department} 
-      AND SubDept = ${subDepartment} 
-      AND Subtask = ${subTask} 
-      AND Task_Label = ${taskLabel} 
-  `;
+      SELECT Assignee_EmpID FROM Assignee
+      WHERE EmpLocation = ${empLocation} 
+        AND Department = ${department} 
+        AND SubDept = ${subDepartment} 
+        AND Subtask = ${subTask} 
+        AND Task_Label = ${taskLabel} 
+    `;
 
     console.log("Assignee query result:", assigneeResult.recordset);
 
@@ -441,7 +464,8 @@ app.post("/api/create-ticket", async (req, res) => {
 
     // Get Assignee's Dept and SubDept from EMP table
     const assigneeDetailsResult = await sql.query`
-          SELECT Dept AS Assignee_Dept, SubDept AS Assignee_SubDept FROM EMP WHERE EmpID = ${assigneeEmpID}
+          SELECT Dept AS Assignee_Dept, SubDept AS Assignee_SubDept 
+          FROM EMP WHERE EmpID = ${assigneeEmpID}
         `;
 
     console.log("Assignee details:", assigneeDetailsResult.recordset);
@@ -457,8 +481,6 @@ app.post("/api/create-ticket", async (req, res) => {
     const assigneeSubDept = assigneeDetailsResult.recordset[0].Assignee_SubDept;
 
     // Generate Ticket_Number
-
-    // Fetch TPrefix from TNumber table based on Assignee_SubDept
     const tPrefixResult = await sql.query`
         SELECT TPrefix FROM TNumber WHERE TSubDept = ${assigneeSubDept}
       `;
@@ -478,7 +500,6 @@ app.post("/api/create-ticket", async (req, res) => {
       .split("T")[0]
       .replace(/-/g, "");
 
-    // Get the count of tickets for the TPrefix on the current date
     const ticketCountResult = await sql.query`
           SELECT COUNT(*) AS TicketCount FROM Tickets
           WHERE CAST(Creation_Date AS DATE) = CAST(GETDATE() AS DATE)
@@ -492,7 +513,8 @@ app.post("/api/create-ticket", async (req, res) => {
 
     console.log("Generated Ticket Number:", ticketNumber);
 
-    // Insert the ticket into the Ticket table
+    // **IMPORTANT:** Here we update the INSERT query to include the new "Attachment" column.
+    // (You will need to add a nullable NVARCHAR column named "Attachment" to your Tickets table.)
     await sql.query`
           INSERT INTO Tickets (
             Ticket_Number,
@@ -510,6 +532,7 @@ app.post("/api/create-ticket", async (req, res) => {
             Reporter_EmpID,
             Reporter_Name,
             Reporter_Email,
+            Attachment,
             Expected_Completion_Date,
             TStatus,
             Assignee_SubDept
@@ -530,6 +553,7 @@ app.post("/api/create-ticket", async (req, res) => {
             ${reporterEmpID},
             ${reporterName},
             ${reporterEmailFull},
+            ${attachmentFile},
             NULL,
             'In-Progress',
             ${assigneeSubDept}
@@ -560,23 +584,23 @@ app.post("/api/create-ticket", async (req, res) => {
 
     const assigneeEmail = assigneeEmailResult.recordset[0].EmpEmail;
 
-    // Send email to assignee
-    const assigneeSubject = "New Ticket Assigned to You";
+    // Send email to assignee with attachments included
+    const assigneeSubject = `New Ticket Assigned to You - ${title}`;
     const assigneeContent = `<p>A new ticket has been assigned to you with Ticket Number: ${ticketNumber}</p>
           <p>Details:</p>
           <p>Title: ${title}</p>
           <p>Description: ${description}</p>`;
-    await sendEmail(assigneeEmail, assigneeSubject, assigneeContent);
+    await sendEmail(assigneeEmail, assigneeSubject, assigneeContent, req.files || []);
     console.log(`Notification email sent to assignee: ${assigneeEmail}`);
 
-    res
-      .status(200)
-      .json({ message: "Ticket created and emails sent successfully" });
+    res.status(200).json({ message: "Ticket created and emails sent successfully" });
   } catch (error) {
     console.error("Error creating ticket:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
+app.use("/uploads", express.static("uploads"));
 
 // API endpoint to fetch user data
 app.get("/api/user", async (req, res) => {
@@ -584,8 +608,9 @@ app.get("/api/user", async (req, res) => {
   const fullEmail = `${email}@premierenergies.com`;
 
   try {
+    // Now also select EmpLocation
     const result = await sql.query`
-        SELECT EmpID, EmpName, Dept FROM EMP WHERE EmpEmail = ${fullEmail}
+        SELECT EmpID, EmpName, Dept, EmpLocation FROM EMP WHERE EmpEmail = ${fullEmail}
       `;
 
     if (result.recordset.length === 0) {
@@ -595,6 +620,42 @@ app.get("/api/user", async (req, res) => {
     res.status(200).json(result.recordset[0]);
   } catch (error) {
     console.error("Error fetching user data:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// In server.js, add this endpoint below your other API endpoints
+app.post("/api/forgot-password", async (req, res) => {
+  const { email, password } = req.body;
+  const fullEmail = `${email}@premierenergies.com`;
+
+  try {
+    // Connect to the database (re‑using the same dbConfig and connection pool)
+    await sql.connect(dbConfig);
+
+    // Update the password in the Login table
+    await sql.query`
+      UPDATE Login SET LPassword = ${password}
+      WHERE Username = ${fullEmail}
+    `;
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 
+app.get("/api/isAssignee", async (req, res) => {
+  const { empID } = req.query;
+  try {
+    await sql.connect(dbConfig);
+    const result = await sql.query`SELECT COUNT(*) as count FROM Assignee WHERE Assignee_EmpID = ${empID}`;
+    const isAssignee = result.recordset[0].count > 0;
+    res.status(200).json({ isAssignee });
+  } catch (error) {
+    console.error("Error checking assignee:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -757,7 +818,7 @@ app.get("/api/employees", async (req, res) => {
 
   try {
     const result = await sql.query`
-      SELECT EmpID, EmpName FROM EMP WHERE Dept = ${department} AND SubDept = ${subdepartment}
+      SELECT EmpID, EmpName, EmpLocation FROM EMP WHERE Dept = ${department} AND SubDept = ${subdepartment}
     `;
 
     res.status(200).json(result.recordset);
@@ -1026,6 +1087,146 @@ app.post("/api/update-ticket", async (req, res) => {
   }
 });
 
+
+/******************************************/
+/** PRODUCTION-READY RESPOND-RESOLUTION ENDPOINT **/
+/******************************************/
+app.post("/api/tickets/respond-resolution", async (req, res) => {
+  try {
+    const { ticketNumber, action, userID } = req.body;
+
+    // 1) Validate user exists
+    const userExists = await sql.query`
+      SELECT COUNT(*) as count 
+      FROM Login 
+      WHERE Username = ${userID}
+    `;
+    if (userExists.recordset[0].count === 0) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    // 2) Fetch the current ticket
+    const ticketRes = await sql.query`
+      SELECT TStatus 
+      FROM Tickets 
+      WHERE Ticket_Number = ${ticketNumber}
+    `;
+    if (ticketRes.recordset.length === 0) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+    const currentStatus = ticketRes.recordset[0].TStatus;
+
+    // 3) Decide the new status based on 'action'
+    //    For example, only allow "accept" or "reject" if currentStatus == "Resolved"
+    //    Adjust logic if your business rules differ.
+    if (currentStatus !== "Resolved") {
+      return res
+        .status(400)
+        .json({ message: "Ticket must be in 'Resolved' status first." });
+    }
+
+    let newStatus;
+    if (action === "accept") {
+      newStatus = "Closed";
+    } else if (action === "reject") {
+      newStatus = "In-Progress";
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Invalid action. Use 'accept' or 'reject'." });
+    }
+
+    // 4) Update the ticket in DB
+    const originalTicket = await getOriginalTicket(ticketNumber);
+
+    await sql.query`
+      UPDATE Tickets
+      SET TStatus = ${newStatus}
+      WHERE Ticket_Number = ${ticketNumber}
+    `;
+
+    // 5) Insert a record into History table
+    //    We'll mark the "Before_State" as the old TStatus and "After_State" as the new TStatus.
+    const changes = [
+      {
+        HTicket_Number: ticketNumber,
+        UserID: userID,
+        Comment:
+          action === "accept"
+            ? "Resolution accepted"
+            : "Resolution rejected. Ticket reopened",
+        Action_Type: "Status",
+        Before_State: originalTicket.TStatus,
+        After_State: newStatus,
+      },
+    ];
+    await insertHistoryRecords(changes);
+
+    // 6) Send notifications (uses your existing logic)
+    await sendStatusChangeEmail(ticketNumber, changes);
+
+    return res.status(200).json({
+      message:
+        action === "accept"
+          ? "Ticket has been closed."
+          : "Ticket has been re-opened (In-Progress).",
+    });
+  } catch (error) {
+    console.error("Error in /api/tickets/respond-resolution:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// New route: Auto-close tickets that have remained in "Resolved" state for 7+ days
+app.post("/api/auto-close-tickets", async (req, res) => {
+  try {
+    // Ensure a connection is established
+    await sql.connect(dbConfig);
+
+    // Get all tickets that are still "Resolved"
+    const resolvedTicketsResult = await sql.query`
+      SELECT Ticket_Number 
+      FROM Tickets 
+      WHERE TStatus = 'Resolved'
+    `;
+    const resolvedTickets = resolvedTicketsResult.recordset;
+
+    const now = new Date();
+    let closedCount = 0;
+
+    // Loop over each resolved ticket
+    for (const ticket of resolvedTickets) {
+      // Find the latest history record when the ticket status was set to "Resolved"
+      const historyResult = await sql.query`
+        SELECT TOP 1 Timestamp
+        FROM History
+        WHERE HTicket_Number = ${ticket.Ticket_Number}
+          AND Action_Type = 'Status'
+          AND After_State = 'Resolved'
+        ORDER BY Timestamp DESC
+      `;
+      if (historyResult.recordset.length > 0) {
+        const resolvedTime = new Date(historyResult.recordset[0].Timestamp);
+        const diffDays = (now - resolvedTime) / (1000 * 60 * 60 * 24);
+        // If at least 7 days have passed, update the ticket status to "Closed"
+        if (diffDays >= 7) {
+          await sql.query`
+            UPDATE Tickets
+            SET TStatus = 'Closed'
+            WHERE Ticket_Number = ${ticket.Ticket_Number}
+          `;
+          closedCount++;
+        }
+      }
+    }
+    res.status(200).json({ message: `Auto-closed ${closedCount} ticket(s).` });
+  } catch (error) {
+    console.error("Error in auto-closing tickets:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // API endpoint to fetch notifications
 app.get("/api/notifications", async (req, res) => {
   const { userID, filter } = req.query; // 'filter' can be 'all', 'read', 'unread'
@@ -1264,6 +1465,11 @@ app.get("/api/team-structure", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "client", "build", "index.html"));
+});
+
 // Start the server
  
 const startServer = async () => {

@@ -14,7 +14,7 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 const SidebarContainer = styled.div`
   width: ${(props) => (props.collapsed ? "60px" : "250px")};
 

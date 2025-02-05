@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { Form, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import axios from "axios";
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 const Container = styled.div`
   display: flex;
   min-height: calc(100vh - 70px);
@@ -299,9 +299,7 @@ const STicket = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const deptResponse = await axios.get(
-          `${API_BASE_URL}/api/departments`
-        );
+        const deptResponse = await axios.get(`${API_BASE_URL}/api/departments`);
         setAssigneeDepts(deptResponse.data);
       } catch (error) {
         console.error("Error fetching departments:", error);
@@ -382,10 +380,7 @@ const STicket = () => {
         Comment: remarks,
       };
 
-      await axios.post(
-        `${API_BASE_URL}/api/update-ticket`,
-        updatedTicketData
-      );
+      await axios.post(`${API_BASE_URL}/api/update-ticket`, updatedTicketData);
       navigate("/profile");
     } catch (error) {
       console.error("Error updating ticket:", error.response || error);
@@ -402,8 +397,10 @@ const STicket = () => {
             <Title>Ticket Details - {ticket.Ticket_Number}</Title>
 
             <DetailRow>
-              <strong>Creation Date:</strong> {ticket.Creation_Date}
+              <strong>Creation Date:</strong>{" "}
+              {new Date(ticket.Creation_Date).toISOString().split("T")[0]}
             </DetailRow>
+
             <DetailRow>
               <strong>Ticket Title:</strong> {ticket.Ticket_Title}
             </DetailRow>
@@ -416,6 +413,20 @@ const STicket = () => {
             <DetailRow>
               <strong>Reporter Email:</strong> {ticket.Reporter_Email}
             </DetailRow>
+
+            {/* Display attachment if available */}
+            {ticket.Attachment && (
+              <DetailRow>
+                <strong>Attachment:</strong>
+                <span>
+                  <img
+                    src={`${API_BASE_URL}/uploads/${ticket.Attachment}`}
+                    alt="Ticket Attachment"
+                    style={{ maxWidth: "300px", borderRadius: "8px" }}
+                  />
+                </span>
+              </DetailRow>
+            )}
 
             {/* Editable fields */}
             <FormRow>

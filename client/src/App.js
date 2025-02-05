@@ -5,6 +5,7 @@ import Header from './components/Header';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
+import ForgotPassword from './components/ForgotPassword';
 import Profile from './components/Profile';
 import Ticket from './components/Ticket';
 import Department from './components/Department';
@@ -24,6 +25,7 @@ function App() {
         <Route path="/" element={< LandingPage />} />
         <Route path="/login" element={< Login />} />
         <Route path="/register" element={< Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/profile" element={< Profile />} />
         <Route path="/department" element={ < Department />} />
         <Route path="/ticket" element={ < Ticket />} />

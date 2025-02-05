@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Sidebar from "./Sidebar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 
 const Container = styled.div`
   display: flex;
@@ -168,6 +167,8 @@ const CreateTicketPage = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [reporterEmail, setReporterEmail] = useState("");
+
+  const [attachments, setAttachments] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -267,20 +268,27 @@ const CreateTicketPage = () => {
       return;
     }
 
-    const ticketData = {
-      title: ticketTitle,
-      type: ticketType,
-      department: selectedDepartment,
-      subDepartment: selectedSubDepartment,
-      subTask: selectedSubTask,
-      taskLabel: selectedTaskLabel,
-      priority: ticketPriority,
-      description: ticketDescription,
-      reporterEmail: reporterEmail, // You should replace this with the actual email
-    };
+    // Create a FormData object and append all text fields
+    const formData = new FormData();
+    formData.append("title", ticketTitle);
+    formData.append("type", ticketType);
+    formData.append("department", selectedDepartment);
+    formData.append("subDepartment", selectedSubDepartment);
+    formData.append("subTask", selectedSubTask);
+    formData.append("taskLabel", selectedTaskLabel);
+    formData.append("priority", ticketPriority);
+    formData.append("description", ticketDescription);
+    formData.append("reporterEmail", reporterEmail);
+
+    // Append each attachment if provided (allowing multiple files)
+    if (attachments) {
+      for (let i = 0; i < attachments.length; i++) {
+        formData.append("attachments", attachments[i]);
+      }
+    }
 
     axios
-      .post(`${API_BASE_URL}}/api/create-ticket`, ticketData)
+      .post(`${API_BASE_URL}/api/create-ticket`, formData)
       .then((response) => {
         setSuccessMessage(
           "Your ticket was created successfully and auto-assigned, please check your inbox for a confirmation email!"
@@ -296,6 +304,7 @@ const CreateTicketPage = () => {
         setSelectedTaskLabel("");
         setTicketPriority("");
         setTicketDescription("");
+        setAttachments(null);
 
         // Clear dependent fields
         setSubDepartments([]);
@@ -404,6 +413,17 @@ const CreateTicketPage = () => {
               value={ticketDescription}
               onChange={(e) => setTicketDescription(e.target.value)}
             ></TextArea>
+
+            <div style={{ margin: "10px 0" }}>
+              <label style={{ marginRight: "10px" }}>Attachments:</label>
+              <input
+                type="file"
+                name="attachments"
+                onChange={(e) => setAttachments(e.target.files)}
+                multiple
+              />
+            </div>
+
             <SubmitButton type="submit">Create Ticket</SubmitButton>
           </Form>
           {successMessage && (

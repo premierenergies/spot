@@ -3,7 +3,7 @@ import styled from "styled-components";
 import Sidebar from "./Sidebar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 // Styled components
 const Container = styled.div`
   display: flex;

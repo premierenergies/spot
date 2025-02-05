@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import RegisterVideo from '../assets/register.mp4';
+import RegisterVideo from '../assets/right.mp4';
 
 const Container = styled.div`
   display: flex;

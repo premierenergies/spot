@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import SVideo from "../assets/spot.mp4";
+import SVideo from "../assets/right.mp4";
 import axios from "axios";
-const API_BASE_URL = "http://14.194.111.58:3000"; 
+const API_BASE_URL = window.location.origin; 
 const Container = styled.div`
   display: flex;
   flex-direction: column;

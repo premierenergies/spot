@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from 'styled-components';
-import LeftLogo from '../assets/logo-left.png';
+import LeftLogo from '../assets/spot.svg';
 import RightLogo from '../assets/logo-right.png';
 
 const HeaderContainer = styled.div`
   
-  background-color: black;
+  background-color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -26,7 +26,7 @@ const LeftLogoStyled = styled.img`
   left: 0; /* Align to the left */
   top: 0;
   transform: translateY(-50%); /* Center vertically */
-  height: 110px; /* Larger size for the logo */
+  height: 300px; /* Larger size for the logo */
 `;
 
 const RightLogoStyled = styled.img`

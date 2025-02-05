@@ -5,9 +5,9 @@ import Sidebar from "./Sidebar";
 import { FaSearch, FaArrowRight, FaArrowUp, FaArrowDown } from "react-icons/fa";
 import axios from "axios";
 
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 
-// Main Container for Layout
+// Main Container for Layout – removed the mobile media query that changed flex-direction
 const Container = styled.div`
   display: flex;
   min-height: calc(100vh - 70px); /* Adjusting for header height */
@@ -27,16 +27,18 @@ const PercentageChange = styled.div`
   color: ${(props) => (props.isIncrease ? "green" : "red")};
 `;
 
+// CONTENT: Apply a left margin equal to the fixed sidebar width.
 const Content = styled.div`
   flex: 1;
   padding: 40px;
+
   box-sizing: border-box;
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
-  /* NEW: Reduce padding on small screens */
   @media (max-width: 768px) {
+    margin-left: 60px; /* For collapsed sidebar on smaller screens */
     padding: 20px;
   }
 `;
@@ -47,16 +49,16 @@ const WelcomeText = styled.h1`
   margin-bottom: 15px;
   font-weight: 600;
 
-  /* Decrease size on mobile */
   @media (max-width: 768px) {
     font-size: 18px;
   }
 `;
 
+// Reduce the bottom margin of employee details for closer spacing.
 const EmployeeDetails = styled.p`
   color: #777;
   font-size: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 `;
 
 const ButtonGroup = styled.div`
@@ -64,7 +66,6 @@ const ButtonGroup = styled.div`
   align-items: center;
   margin-bottom: 20px;
 
-  /* NEW: Allow wrapping on smaller screens */
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -80,16 +81,14 @@ const SearchBar = styled.div`
   width: 25%;
   margin-right: 20px;
 
-  /* Smaller on tablets */
   @media (max-width: 768px) {
-    width: 40%;
+    width: 60%;
     margin-right: 0;
     margin-bottom: 10px;
   }
 
-  /* Even smaller on narrow phones */
   @media (max-width: 480px) {
-    width: 60%;
+    width: 80%;
   }
 `;
 
@@ -123,38 +122,38 @@ const Button = styled.button`
     color: white;
   }
 
-  /* Make buttons smaller on tablets */
   @media (max-width: 768px) {
     font-size: 14px;
     padding: 8px 15px;
     margin-bottom: 10px;
   }
 
-  /* On very narrow screens, let them take full width */
   @media (max-width: 400px) {
     width: 100%;
     margin-right: 0;
   }
 `;
 
+// StatusCardGroup: On very small screens, constrain the max-width and left-align the cards.
 const StatusCardGroup = styled.div`
-  /* Remove fixed width: max-content to avoid horizontal scroll */
   display: flex;
   justify-content: center;
-  margin-bottom: 30px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-bottom: 15px; /* reduced spacing */
   width: 100%;
-
-  /* Let cards wrap on smaller screens */
   flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    max-width: 360px;
+    margin: 0 auto;
+    justify-content: flex-start;
+  }
 `;
 
 const StatusCardContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px; /* Add some gap so cards have space */
+  gap: 10px;
   margin: 10px 0;
   border-radius: 10px;
   border: 1px solid #666;
@@ -164,7 +163,7 @@ const StatusCardContainer = styled.div`
   }
 `;
 
-/* Each StatusCard is now forced to wrap and not overflow horizontally */
+// StatusCard: decrease dimensions on mobile
 const StatusCard = styled.div`
   background-color: #ffffff;
   color: #000;
@@ -177,10 +176,9 @@ const StatusCard = styled.div`
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
-
   align-items: center;
   justify-content: center;
+  transition: all 0.3s ease;
 
   &:hover {
     transform: scale(1.05);
@@ -188,17 +186,18 @@ const StatusCard = styled.div`
   }
 
   &:last-child {
-    border-right: none; /* Removes border for the last card */
+    border-right: none;
   }
 
-  /* On small screens, let them shrink or wrap without horizontal overflow */
   @media (max-width: 768px) {
     width: 120px;
     border-right: none;
   }
 
   @media (max-width: 480px) {
-    width: 100px;
+    width: 80px;
+    padding: 10px;
+    font-size: 14px;
   }
 `;
 
@@ -220,7 +219,6 @@ const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
 
-  /* NEW: Allow horizontal scroll on smaller screens */
   @media (max-width: 768px) {
     display: block;
     overflow-x: auto;
@@ -254,7 +252,7 @@ const PriorityStar = styled.span`
 
 const CreateTicketButton = styled.button`
   position: absolute;
-  top: 90px; /* Adjusted to ensure it is below the sticky header */
+  top: 90px;
   right: 20px;
   background-color: #61b847;
   color: #ffffff;
@@ -263,8 +261,7 @@ const CreateTicketButton = styled.button`
   padding: 15px 30px;
   font-size: 18px;
   cursor: pointer;
-  
-  /* Smaller on mobile */
+
   @media (max-width: 768px) {
     position: static;
     margin-bottom: 20px;
@@ -418,6 +415,7 @@ const Dashboard = () => {
   const [assigneeDepts, setAssigneeDepts] = useState([]);
   const [assigneeSubDepts, setAssigneeSubDepts] = useState([]);
   const [assigneeEmpIDs, setAssigneeEmpIDs] = useState([]);
+  const [isAssignee, setIsAssignee] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -435,6 +433,7 @@ const Dashboard = () => {
         setUserData(userResponse.data);
 
         console.log("username is", storedUsername);
+        console.log("location is", userResponse.data.EmpLocation);
 
         // Fetch tickets assigned to the user by default
         fetchTickets("assignedByMe", userResponse.data.EmpID);
@@ -642,6 +641,19 @@ const Dashboard = () => {
     setFilteredTickets(tickets); // Sync filteredTickets with tickets
   }, [tickets]);
 
+  useEffect(() => {
+    if (userData && userData.EmpID) {
+      axios
+        .get(`${API_BASE_URL}/api/isAssignee`, {
+          params: { empID: userData.EmpID },
+        })
+        .then((response) => {
+          setIsAssignee(response.data.isAssignee);
+        })
+        .catch((err) => console.error("Error checking assignee status:", err));
+    }
+  }, [userData]);
+
   const handleModalSubmit = async () => {
     try {
       const updatedTicketData = {
@@ -690,6 +702,8 @@ const Dashboard = () => {
             Employee ID: {userData.EmpID}
             <br />
             Department: {userData.Dept}
+            <br />
+            Location: {userData.EmpLocation}
           </EmployeeDetails>
 
           <StatusCardGroup>
@@ -735,12 +749,14 @@ const Dashboard = () => {
             >
               Assigned by Me
             </Button>
-            <Button
-              active={viewMode === "assignedToMe"}
-              onClick={() => handleViewModeChange("assignedToMe")}
-            >
-              Assigned to Me
-            </Button>
+            {isAssignee && (
+              <Button
+                active={viewMode === "assignedToMe"}
+                onClick={() => handleViewModeChange("assignedToMe")}
+              >
+                Assigned to Me
+              </Button>
+            )}
           </ButtonGroup>
 
           <Table>

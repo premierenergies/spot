@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 import { FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 const Container = styled.div`
   display: flex;
   min-height: calc(100vh - 70px);

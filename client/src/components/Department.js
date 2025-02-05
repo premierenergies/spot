@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { FaSearch, FaArrowRight, FaArrowUp, FaArrowDown } from "react-icons/fa";
 import axios from "axios";
-const API_BASE_URL = "http://14.194.111.58:3000";
+const API_BASE_URL = window.location.origin;
 
 const Container = styled.div`
   display: flex;
@@ -419,13 +419,13 @@ const DepartmentDashboard = () => {
               active={viewMode === "assignedByDept"}
               onClick={() => handleViewModeChange("assignedByDept")}
             >
-              Assigned by Me
+              Assigned by Department
             </Button>
             <Button
               active={viewMode === "assignedToDept"}
               onClick={() => handleViewModeChange("assignedToDept")}
             >
-              Assigned to Me
+              Assigned to Department
             </Button>
           </ButtonGroup>
 
