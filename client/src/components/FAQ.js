@@ -80,40 +80,24 @@ const FAQ = () => {
               <Answer>To create a new ticket, click on the "Create Ticket" button in the top right corner of your profile or department page. Fill in the required details and submit.</Answer>
             </FAQItem>
             <FAQItem>
-              <Question>What is the difference between "Assigned to Me" and "Assigned by Me"?</Question>
-              <Answer>"Assigned to Me" shows tickets that have been assigned to you, whereas "Assigned by Me" lists the tickets that you have assigned to others.</Answer>
-            </FAQItem>
-            <FAQItem>
               <Question>How do I log out?</Question>
               <Answer>To log out, click on the "Logout" button located at the bottom of the sidebar.</Answer>
             </FAQItem>
             <FAQItem>
               <Question>Can I view tickets for my entire department?</Question>
-              <Answer>Yes, you can view tickets for your entire department by navigating to the "Department" page from the sidebar.</Answer>
-            </FAQItem>
-            <FAQItem>
-              <Question>How can I prioritize tasks?</Question>
-              <Answer>You can use the "Priority Tasks" tab in the sidebar to manage and view tasks based on priority. You can mark tasks with different priority levels, ensuring you focus on what is most important.</Answer>
+              <Answer>No, only your respective HOD can view tickets for your entire department by navigating to the "Department" page from the sidebar.</Answer>
             </FAQItem>
             <FAQItem>
               <Question>What should I do if I encounter an issue with the platform?</Question>
-              <Answer>If you encounter any issues with the platform, please report it by clicking on the "Tasks/Issues" option in the sidebar. Provide a brief description of the issue, and our support team will assist you promptly.</Answer>
+              <Answer>If you encounter any issues with the platform, please contact your nearest SPOT admin, you can find more information on them here: </Answer>
             </FAQItem>
             <FAQItem>
               <Question>How do I assign a ticket to a team member?</Question>
               <Answer>When creating or editing a ticket, you can select the assignee from the dropdown menu under "Assignee's Department". This will allow you to allocate the ticket to the appropriate team member.</Answer>
             </FAQItem>
             <FAQItem>
-              <Question>What happens when a ticket is closed?</Question>
-              <Answer>Once a ticket is closed, it will be moved to the "Closed" section of your dashboard. You can still view all closed tickets and their history for your records.</Answer>
-            </FAQItem>
-            <FAQItem>
               <Question>What is the difference between ticket status closed and resolved?</Question>
               <Answer>Once an assignee completes the task/issue assigned to them, they will mark it as resolved, if the user is satisfied, he will accept the resolution and the ticket will be marked as closed. If not, user can reopen the ticket. If neither action is taken by user one week after the task/issue was marked as resolved, the ticket status is automatically marked as closed.</Answer>
-            </FAQItem>
-            <FAQItem>
-              <Question>What are priority tasks?</Question>
-              <Answer>Tasks with priority status marked as high are considered priority tasks.</Answer>
             </FAQItem>
           </FAQSection>
         </Content>

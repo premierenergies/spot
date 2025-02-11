@@ -1,14 +1,13 @@
+// Sidebar.js
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import {
-  FaBell,
   FaChevronLeft,
   FaChevronRight,
   FaUser,
   FaBuilding,
   FaSignOutAlt,
   FaTachometerAlt,
-  FaTasks,
   FaUsers,
   FaQuestionCircle,
 } from "react-icons/fa";
@@ -65,46 +64,15 @@ const LogoutButton = styled(SidebarItem)`
   margin-top: auto;
 `;
 
-const NotificationBadge = styled.span`
-  background-color: red;
-  color: white;
-  border-radius: 10px;
-  padding: 2px 6px;
-  font-size: 12px;
-  position: absolute;
-  top: 5px;
-  right: ${(props) => (props.collapsed ? "5px" : "10px")};
-`;
-
 const Sidebar = ({ activeTab }) => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
-  const [unreadCount, setUnreadCount] = useState(0);
-
+  // We still fetch HOD status for conditional display of Department option.
   const storedUsername = localStorage.getItem("username");
-  const fullEmailUser = `${storedUsername}@premierenergies.com`;
-
   const empID = localStorage.getItem("empID");
   const [isHOD, setIsHOD] = useState(false);
 
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/notifications`, {
-          params: { userID: fullEmailUser },
-        });
-        console.log("Unread notifications count:", response.data.unreadCount);
-        setUnreadCount(response.data.unreadCount);
-      } catch (error) {
-        console.error("Error fetching unread count:", error);
-      }
-    };
-
-    fetchUnreadCount();
-  }, [fullEmailUser]);
-
-  // Check if the user is an HOD
   useEffect(() => {
     const checkHOD = async () => {
       if (empID) {
@@ -142,7 +110,6 @@ const Sidebar = ({ activeTab }) => {
         }
       }
     };
-
     fetchDeptAndHODID();
   }, [storedUsername, empID]);
 
@@ -190,16 +157,7 @@ const Sidebar = ({ activeTab }) => {
           <SidebarItemText collapsed={collapsed}>Dashboard</SidebarItemText>
         </SidebarItem>
 
-        <SidebarItem
-          active={activeTab === "Priority Tasks"}
-          collapsed={collapsed}
-          onClick={() => handleNavigation("/priority")}
-        >
-          <FaTasks />
-          <SidebarItemText collapsed={collapsed}>
-            Priority Tasks
-          </SidebarItemText>
-        </SidebarItem>
+        {/* Removed Priority Tasks SidebarItem */}
 
         <SidebarItem
           active={activeTab === "Team Structure"}
@@ -219,19 +177,7 @@ const Sidebar = ({ activeTab }) => {
           <SidebarItemText collapsed={collapsed}>FAQ's</SidebarItemText>
         </SidebarItem>
 
-        <SidebarItem
-          active={activeTab === "Notifications"}
-          collapsed={collapsed}
-          onClick={() => handleNavigation("/notifs")}
-        >
-          <FaBell />
-          {unreadCount > 0 && (
-            <NotificationBadge collapsed={collapsed}>
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </NotificationBadge>
-          )}
-          <SidebarItemText collapsed={collapsed}>Notifications</SidebarItemText>
-        </SidebarItem>
+        {/* Removed Notifications SidebarItem */}
 
         <LogoutButton
           collapsed={collapsed}

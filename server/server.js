@@ -144,20 +144,25 @@ async function sendEmail(toEmail, subject, content, attachments = []) {
 
 
 // API endpoint to handle OTP requests
+// API endpoint to handle OTP requests
 app.post("/api/send-otp", async (req, res) => {
   const { email } = req.body;
   const fullEmail = `${email}@premierenergies.com`;
 
   try {
-    // Connect to the database
     await sql.connect(dbConfig);
 
-    // Query to check if email exists and ActiveFlag is 1
-    const result =
-      await sql.query`SELECT EmpID FROM EMP WHERE EmpEmail = ${fullEmail} AND ActiveFlag = 1`;
+    // NEW: Check if an account already exists in Login table (LPassword is not null)
+    const loginCheck = await sql.query`SELECT LPassword FROM Login WHERE Username = ${fullEmail}`;
+    if (loginCheck.recordset.length > 0 && loginCheck.recordset[0].LPassword !== null) {
+      return res.status(400).json({
+        message: "An account associated with this email already exists, please login instead"
+      });
+    }
 
+    // Query to check if email exists in EMP table and ActiveFlag is 1
+    const result = await sql.query`SELECT EmpID FROM EMP WHERE EmpEmail = ${fullEmail} AND ActiveFlag = 1`;
     if (result.recordset.length > 0) {
-      // Email exists and ActiveFlag is 1
       const empID = result.recordset[0].EmpID;
 
       // Generate a 6-digit OTP
@@ -174,7 +179,7 @@ app.post("/api/send-otp", async (req, res) => {
           WHEN NOT MATCHED THEN
             INSERT (Username, OTP, OTP_Expiry, LEmpID)
             VALUES (${fullEmail}, ${otp}, ${expiryTime}, ${empID});
-        `;
+      `;
 
       // Send OTP via email
       const subject = "Your OTP Code";
@@ -183,10 +188,7 @@ app.post("/api/send-otp", async (req, res) => {
 
       res.status(200).json({ message: "OTP sent successfully" });
     } else {
-      // Email not found or ActiveFlag is not 1
-      res
-        .status(404)
-        .json({ message: "Contact HR to be added to the Employee List" });
+      res.status(404).json({ message: "Contact HR to be added to the Employee List" });
     }
   } catch (error) {
     console.error("Error:", error);
