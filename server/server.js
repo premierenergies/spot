@@ -6,7 +6,7 @@ const { Client } = require("@microsoft/microsoft-graph-client");
 const { ClientSecretCredential } = require("@azure/identity");
 const multer = require("multer"); 
 const upload = multer({ dest: "uploads/" });
-
+const https = require("https");
 const fs = require("fs");
 require("isomorphic-fetch");
 
@@ -23,7 +23,11 @@ app.use(
       "http://14.194.111.58:3000",
       "http://spot.premierenergies.com",
       "http://spot.premierenergies.com:3000",
-      "http://spot.premierenergies.com/login"
+      "http://spot.premierenergies.com/login",
+      "https://14.194.111.58:3000",
+      "https://spot.premierenergies.com",
+      "https://spot.premierenergies.com:3000",
+      "https://spot.premierenergies.com/login"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // <-- add OPTIONS
     credentials: true,
@@ -1487,30 +1491,27 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "client", "build", "index.html"));
 });
 
-// Start the server
- 
-const startServer = async () => {
- 
-  try {
- 
-    await initializeDatabase(); // Initialize the database connection
-    const PORT = process.env.PORT || 3000;
- 
-    const HOST = process.env.HOST || "0.0.0.0";
-    app.listen(PORT, HOST, () => {
-      console.log(`Server running at http://${HOST}:${PORT} (public IP accessible)`);
-    });    
-    
- 
-  } catch (error) {
- 
-    console.error("Error starting the server:", error);
- 
-    process.exit(1);
- 
-  }
- 
+// HTTPS Deployment Section
+const PORT = process.env.PORT || 443; // Using port 3000 for both frontend and backend now
+const HOST = process.env.HOST || "0.0.0.0";
+
+const httpsOptions = {
+  key: fs.readFileSync(path.join(__dirname, "certs", "mydomain.key"), "utf8"),
+  cert: fs.readFileSync(path.join(__dirname, "certs", "d466aacf3db3f299.crt"), "utf8"),
+  ca: fs.readFileSync(path.join(__dirname, "certs", "gd_bundle-g2-g1.crt"), "utf8")
 };
-// Call the function to start the server
- 
+
+
+const startServer = async () => {
+  try {
+    await initializeDatabase();
+    https.createServer(httpsOptions, app).listen(PORT, HOST, () => {
+      console.log(`HTTPS Server running at https://${HOST}:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Error starting the server:", error);
+    process.exit(1);
+  }
+};
+
 startServer();
