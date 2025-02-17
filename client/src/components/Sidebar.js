@@ -10,6 +10,7 @@ import {
   FaTachometerAlt,
   FaUsers,
   FaQuestionCircle,
+  FaPenSquare,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -17,7 +18,11 @@ const API_BASE_URL = window.location.origin;
 
 const SidebarContainer = styled.div`
   width: ${(props) => (props.collapsed ? "60px" : "250px")};
-  background-color: #bebebe;
+  background: linear-gradient(
+    357deg,
+    rgba(15, 188, 83, 1) 25%,
+    rgba(40, 102, 205, 1) 100%
+  );
   color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -35,6 +40,15 @@ const SidebarToggle = styled.div`
   color: #ffffff;
   position: relative;
   z-index: 2000;
+`;
+
+const SidebarG = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  position: relative;
+  z-index: 1000;
 `;
 
 const SidebarItem = styled.div`
@@ -98,9 +112,12 @@ const Sidebar = ({ activeTab }) => {
             params: { email: storedUsername },
           });
           const userDept = userResponse.data.Dept;
-          const hodResponse = await axios.get(`${API_BASE_URL}/api/getHODForDept`, {
-            params: { dept: userDept },
-          });
+          const hodResponse = await axios.get(
+            `${API_BASE_URL}/api/getHODForDept`,
+            {
+              params: { dept: userDept },
+            }
+          );
           const hodID = hodResponse.data.HODID;
           console.log("Logged in EmpID:", empID);
           console.log("User's Department:", userDept);
@@ -113,6 +130,21 @@ const Sidebar = ({ activeTab }) => {
     fetchDeptAndHODID();
   }, [storedUsername, empID]);
 
+  // Logout handler
+  // Sidebar.js (logout handler portion)
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/api/logout`);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    // Clear stored login data
+    localStorage.removeItem("username");
+    localStorage.removeItem("empID");
+    // Redirect to landing page
+    navigate("/login");
+  };
+
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
   };
@@ -123,7 +155,7 @@ const Sidebar = ({ activeTab }) => {
 
   return (
     <SidebarContainer collapsed={collapsed}>
-      <div>
+      <div id="SidebarG">
         <SidebarToggle collapsed={collapsed} onClick={toggleSidebar}>
           {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
         </SidebarToggle>
@@ -134,7 +166,9 @@ const Sidebar = ({ activeTab }) => {
           onClick={() => handleNavigation("/profile")}
         >
           <FaUser />
-          <SidebarItemText collapsed={collapsed}>User Profile</SidebarItemText>
+          <SidebarItemText collapsed={collapsed}>
+            Tickets' Overview
+          </SidebarItemText>
         </SidebarItem>
 
         {isHOD && (
@@ -157,7 +191,16 @@ const Sidebar = ({ activeTab }) => {
           <SidebarItemText collapsed={collapsed}>Dashboard</SidebarItemText>
         </SidebarItem>
 
-        {/* Removed Priority Tasks SidebarItem */}
+        <SidebarItem
+          active={activeTab === "Create Ticket"}
+          collapsed={collapsed}
+          onClick={() => handleNavigation("/ticket")}
+        >
+          <FaPenSquare />
+          <SidebarItemText collapsed={collapsed}>Create Ticket</SidebarItemText>
+        </SidebarItem>
+
+        {/* Removed Priority Tasks SidebarItem 
 
         <SidebarItem
           active={activeTab === "Team Structure"}
@@ -179,10 +222,7 @@ const Sidebar = ({ activeTab }) => {
 
         {/* Removed Notifications SidebarItem */}
 
-        <LogoutButton
-          collapsed={collapsed}
-          onClick={() => handleNavigation("/login")}
-        >
+        <LogoutButton collapsed={collapsed} onClick={handleLogout}>
           <FaSignOutAlt />
           <SidebarItemText collapsed={collapsed}>Logout</SidebarItemText>
         </LogoutButton>

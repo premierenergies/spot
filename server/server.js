@@ -4,7 +4,7 @@ const sql = require("mssql");
 const dotenv = require("dotenv");
 const { Client } = require("@microsoft/microsoft-graph-client");
 const { ClientSecretCredential } = require("@azure/identity");
-const multer = require("multer"); 
+const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 const https = require("https");
 const fs = require("fs");
@@ -27,7 +27,7 @@ app.use(
       "https://14.194.111.58:3000",
       "https://spot.premierenergies.com",
       "https://spot.premierenergies.com:3000",
-      "https://spot.premierenergies.com/login"
+      "https://spot.premierenergies.com/login",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // <-- add OPTIONS
     credentials: true,
@@ -37,10 +37,8 @@ app.use(
 // Also allow the server to respond to preflight automatically:
 app.options("*", cors());
 
-
 app.use(express.json()); // Middleware to parse JSON
 app.use(express.static(path.join(__dirname, "..", "client", "build")));
-
 
 // Database configuration
 const dbConfig = {
@@ -71,7 +69,10 @@ async function initializeDatabase() {
 
 // Middleware to use the existing connection pool
 app.use((req, res, next) => {
-  res.setHeader("Content-Security-Policy", "default-src *; script-src *; style-src *; img-src *; connect-src *;");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src *; script-src *; style-src *; img-src *; connect-src *;"
+  );
 
   if (!pool) {
     return res
@@ -127,10 +128,10 @@ async function sendEmail(toEmail, subject, content, attachments = []) {
 
     // If attachments were passed, add them to the message
     if (attachments && attachments.length > 0) {
-      message.attachments = attachments.map(file => ({
+      message.attachments = attachments.map((file) => ({
         "@odata.type": "#microsoft.graph.fileAttachment",
-        Name: file.originalname,           // the original file name
-        ContentType: file.mimetype,          // MIME type of the file
+        Name: file.originalname, // the original file name
+        ContentType: file.mimetype, // MIME type of the file
         ContentBytes: fs.readFileSync(file.path, { encoding: "base64" }),
       }));
     }
@@ -146,7 +147,6 @@ async function sendEmail(toEmail, subject, content, attachments = []) {
   }
 }
 
-
 // API endpoint to handle OTP requests
 // API endpoint to handle OTP requests
 app.post("/api/send-otp", async (req, res) => {
@@ -157,15 +157,21 @@ app.post("/api/send-otp", async (req, res) => {
     await sql.connect(dbConfig);
 
     // NEW: Check if an account already exists in Login table (LPassword is not null)
-    const loginCheck = await sql.query`SELECT LPassword FROM Login WHERE Username = ${fullEmail}`;
-    if (loginCheck.recordset.length > 0 && loginCheck.recordset[0].LPassword !== null) {
+    const loginCheck =
+      await sql.query`SELECT LPassword FROM Login WHERE Username = ${fullEmail}`;
+    if (
+      loginCheck.recordset.length > 0 &&
+      loginCheck.recordset[0].LPassword !== null
+    ) {
       return res.status(400).json({
-        message: "An account associated with this email already exists, please login instead"
+        message:
+          "An account associated with this email already exists, please login instead",
       });
     }
 
     // Query to check if email exists in EMP table and ActiveFlag is 1
-    const result = await sql.query`SELECT EmpID FROM EMP WHERE EmpEmail = ${fullEmail} AND ActiveFlag = 1`;
+    const result =
+      await sql.query`SELECT EmpID FROM EMP WHERE EmpEmail = ${fullEmail} AND ActiveFlag = 1`;
     if (result.recordset.length > 0) {
       const empID = result.recordset[0].EmpID;
 
@@ -192,7 +198,12 @@ app.post("/api/send-otp", async (req, res) => {
 
       res.status(200).json({ message: "OTP sent successfully" });
     } else {
-      res.status(404).json({ message: "Contact HR to be added to the Employee List" });
+      res
+        .status(404)
+        .json({
+          message:
+            "We do not have a @premierenergies email address registered for you. If you have a company email ID, please contact HR to get it updated or contact your manager to raise a ticket on your behalf.",
+        });
     }
   } catch (error) {
     console.error("Error:", error);
@@ -260,15 +271,22 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
+    // Validate new password: minimum 8 characters, at least 1 number and 1 special character
+    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and contain at least one number and one special character.",
+      });
+    }
+
     // Otherwise update the password in the Login table (complete registration)
     await sql.query`
       UPDATE Login SET LPassword = ${password}
       WHERE Username = ${fullEmail}
     `;
 
-    res
-      .status(200)
-      .json({ message: "Registration completed successfully" });
+    res.status(200).json({ message: "Registration completed successfully" });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -384,34 +402,11 @@ app.get("/api/tasklabels", async (req, res) => {
 });
 
 // API endpoint to create a ticket
-app.post("/api/create-ticket", upload.array("attachments"), async (req, res) => {
-  const {
-    title,
-    type,
-    department,
-    subDepartment,
-    subTask,
-    taskLabel,
-    priority,
-    description,
-    reporterEmail,
-  } = req.body;
-
-  // Log files if provided
-  if (req.files && req.files.length > 0) {
-    console.log("Received attachments:", req.files);
-  }
-  // Choose the first attachment's filename if any
-  const attachmentFile = (req.files && req.files.length > 0)
-    ? req.files[0].filename
-    : null;
-
-  const fullReporterEmail = `${reporterEmail}@premierenergies.com`;
-
-  try {
-    await sql.connect(dbConfig);
-
-    console.log("Received ticket creation request with data:", {
+app.post(
+  "/api/create-ticket",
+  upload.array("attachments"),
+  async (req, res) => {
+    const {
       title,
       type,
       department,
@@ -421,49 +416,74 @@ app.post("/api/create-ticket", upload.array("attachments"), async (req, res) => 
       priority,
       description,
       reporterEmail,
-      fullReporterEmail,
-    });
+    } = req.body;
 
-    // Get reporter's details from EMP table
-    const reporterResult = await sql.query`
+    // Log files if provided
+    if (req.files && req.files.length > 0) {
+      console.log("Received attachments:", req.files);
+    }
+    // Choose the first attachment's filename if any
+    const attachmentFile =
+      req.files && req.files.length > 0 ? req.files[0].filename : null;
+
+    const fullReporterEmail = `${reporterEmail}@premierenergies.com`;
+
+    try {
+      await sql.connect(dbConfig);
+
+      console.log("Received ticket creation request with data:", {
+        title,
+        type,
+        department,
+        subDepartment,
+        subTask,
+        taskLabel,
+        priority,
+        description,
+        reporterEmail,
+        fullReporterEmail,
+      });
+
+      // Get reporter's details from EMP table
+      const reporterResult = await sql.query`
         SELECT EmpID, EmpLocation, Dept, EmpName, EmpEmail 
         FROM EMP 
         WHERE EmpEmail = ${fullReporterEmail}
       `;
 
-    console.log("Reporter query result:", reporterResult.recordset);
+      console.log("Reporter query result:", reporterResult.recordset);
 
-    if (reporterResult.recordset.length === 0) {
-      console.error("Reporter not found in EMP table");
-      return res
-        .status(404)
-        .json({ message: "Reporter not found in EMP table" });
-    }
+      if (reporterResult.recordset.length === 0) {
+        console.error("Reporter not found in EMP table");
+        return res
+          .status(404)
+          .json({ message: "Reporter not found in EMP table" });
+      }
 
-    const reporterEmpID = reporterResult.recordset[0].EmpID;
-    const empLocation = reporterResult.recordset[0].EmpLocation;
-    const reporterDept = reporterResult.recordset[0].Dept;
-    const reporterName = reporterResult.recordset[0].EmpName;
-    const reporterEmailFull = reporterResult.recordset[0].EmpEmail;
+      const reporterEmpID = reporterResult.recordset[0].EmpID;
+      const empLocation = reporterResult.recordset[0].EmpLocation;
+      const reporterDept = reporterResult.recordset[0].Dept;
+      const reporterName = reporterResult.recordset[0].EmpName;
+      const reporterEmailFull = reporterResult.recordset[0].EmpEmail;
 
-    console.log("Reporter details:", {
-      reporterEmpID,
-      empLocation,
-      reporterDept,
-      reporterName,
-      reporterEmailFull,
-    });
+      console.log("Reporter details:", {
+        reporterEmpID,
+        empLocation,
+        reporterDept,
+        reporterName,
+        reporterEmailFull,
+      });
 
-    // Determine Assignee_EmpID from Assignee table
-    console.log("Querying Assignee table with criteria:", {
-      empLocation,
-      department,
-      subDepartment,
-      subTask,
-      taskLabel,
-    });
+      // Determine Assignee_EmpID from Assignee table
+      console.log("Querying Assignee table with criteria:", {
+        empLocation,
+        department,
+        subDepartment,
+        subTask,
+        taskLabel,
+      });
 
-    const assigneeResult = await sql.query`
+      const assigneeResult = await sql.query`
       SELECT Assignee_EmpID FROM Assignee
       WHERE EmpLocation = ${empLocation} 
         AND Department = ${department} 
@@ -472,72 +492,73 @@ app.post("/api/create-ticket", upload.array("attachments"), async (req, res) => 
         AND Task_Label = ${taskLabel} 
     `;
 
-    console.log("Assignee query result:", assigneeResult.recordset);
+      console.log("Assignee query result:", assigneeResult.recordset);
 
-    if (assigneeResult.recordset.length === 0) {
-      console.error("No assignee found for the provided criteria");
-      return res
-        .status(404)
-        .json({ message: "No assignee found for the provided criteria" });
-    }
+      if (assigneeResult.recordset.length === 0) {
+        console.error("No assignee found for the provided criteria");
+        return res
+          .status(404)
+          .json({ message: "No assignee found for the provided criteria" });
+      }
 
-    const assigneeEmpID = assigneeResult.recordset[0].Assignee_EmpID;
-    console.log("Assignee EmpID:", assigneeEmpID);
+      const assigneeEmpID = assigneeResult.recordset[0].Assignee_EmpID;
+      console.log("Assignee EmpID:", assigneeEmpID);
 
-    // Get Assignee's Dept and SubDept from EMP table
-    const assigneeDetailsResult = await sql.query`
+      // Get Assignee's Dept and SubDept from EMP table
+      const assigneeDetailsResult = await sql.query`
           SELECT Dept AS Assignee_Dept, SubDept AS Assignee_SubDept 
           FROM EMP WHERE EmpID = ${assigneeEmpID}
         `;
 
-    console.log("Assignee details:", assigneeDetailsResult.recordset);
+      console.log("Assignee details:", assigneeDetailsResult.recordset);
 
-    if (assigneeDetailsResult.recordset.length === 0) {
-      console.error("Assignee not found in EMP table");
-      return res
-        .status(404)
-        .json({ message: "Assignee not found in EMP table" });
-    }
+      if (assigneeDetailsResult.recordset.length === 0) {
+        console.error("Assignee not found in EMP table");
+        return res
+          .status(404)
+          .json({ message: "Assignee not found in EMP table" });
+      }
 
-    const assigneeDept = assigneeDetailsResult.recordset[0].Assignee_Dept;
-    const assigneeSubDept = assigneeDetailsResult.recordset[0].Assignee_SubDept;
+      const assigneeDept = assigneeDetailsResult.recordset[0].Assignee_Dept;
+      const assigneeSubDept =
+        assigneeDetailsResult.recordset[0].Assignee_SubDept;
 
-    // Generate Ticket_Number
-    const tPrefixResult = await sql.query`
+      // Generate Ticket_Number
+      const tPrefixResult = await sql.query`
         SELECT TPrefix FROM TNumber WHERE TSubDept = ${assigneeSubDept}
       `;
 
-    if (tPrefixResult.recordset.length === 0) {
-      console.error("TPrefix not found for the given SubDept");
-      return res
-        .status(404)
-        .json({ message: "TPrefix not found for the given SubDept" });
-    }
+      if (tPrefixResult.recordset.length === 0) {
+        console.error("TPrefix not found for the given SubDept");
+        return res
+          .status(404)
+          .json({ message: "TPrefix not found for the given SubDept" });
+      }
 
-    const tPrefix = tPrefixResult.recordset[0].TPrefix;
+      const tPrefix = tPrefixResult.recordset[0].TPrefix;
 
-    const creationDate = new Date();
-    const creationDateStr = creationDate
-      .toISOString()
-      .split("T")[0]
-      .replace(/-/g, "");
+      const creationDate = new Date();
+      const creationDateStr = creationDate
+        .toISOString()
+        .split("T")[0]
+        .replace(/-/g, "");
 
-    const ticketCountResult = await sql.query`
+      const ticketCountResult = await sql.query`
           SELECT COUNT(*) AS TicketCount FROM Tickets
           WHERE CAST(Creation_Date AS DATE) = CAST(GETDATE() AS DATE)
             AND Ticket_Number LIKE ${tPrefix + "%"}
         `;
 
-    const ticketCount = ticketCountResult.recordset[0].TicketCount;
-    const serialNumber = (ticketCount + 1).toString().padStart(3, "0");
+      const ticketCount = ticketCountResult.recordset[0].TicketCount;
+      const serialNumber = (ticketCount + 1).toString().padStart(3, "0");
 
-    const ticketNumber = `${tPrefix}_${creationDateStr}_${serialNumber}`;
+      const ticketNumber = `${tPrefix}_${creationDateStr}_${serialNumber}`;
 
-    console.log("Generated Ticket Number:", ticketNumber);
+      console.log("Generated Ticket Number:", ticketNumber);
 
-    // **IMPORTANT:** Here we update the INSERT query to include the new "Attachment" column.
-    // (You will need to add a nullable NVARCHAR column named "Attachment" to your Tickets table.)
-    await sql.query`
+      // **IMPORTANT:** Here we update the INSERT query to include the new "Attachment" column.
+      // (You will need to add a nullable NVARCHAR column named "Attachment" to your Tickets table.)
+      await sql.query`
           INSERT INTO Tickets (
             Ticket_Number,
             Creation_Date,
@@ -562,7 +583,7 @@ app.post("/api/create-ticket", upload.array("attachments"), async (req, res) => 
           VALUES (
             ${ticketNumber},
             GETDATE(),
-            ${type},
+            'Issue',
             ${title},
             ${description},
             ${priority},
@@ -582,45 +603,56 @@ app.post("/api/create-ticket", upload.array("attachments"), async (req, res) => 
           )
         `;
 
-    console.log("Ticket inserted into Tickets table successfully.");
+      console.log("Ticket inserted into Tickets table successfully.");
 
-    // Send confirmation email to reporter
-    const reporterSubject = "Ticket Created Successfully";
-    const reporterContent = `<p>Your ticket has been created successfully with Ticket Number: ${ticketNumber}</p>`;
-    await sendEmail(fullReporterEmail, reporterSubject, reporterContent);
-    console.log(`Confirmation email sent to reporter: ${fullReporterEmail}`);
+      // Send confirmation email to reporter
+      const reporterSubject = "Ticket Created Successfully";
+      const reporterContent = `<p>Your ticket has been created successfully with Ticket Number: ${ticketNumber}</p>`;
+      await sendEmail(fullReporterEmail, reporterSubject, reporterContent);
+      console.log(`Confirmation email sent to reporter: ${fullReporterEmail}`);
 
-    // Get Assignee's email from EMP table
-    const assigneeEmailResult = await sql.query`
+      // Get Assignee's email from EMP table
+      const assigneeEmailResult = await sql.query`
           SELECT EmpEmail FROM EMP WHERE EmpID = ${assigneeEmpID}
         `;
 
-    console.log("Assignee email query result:", assigneeEmailResult.recordset);
+      console.log(
+        "Assignee email query result:",
+        assigneeEmailResult.recordset
+      );
 
-    if (assigneeEmailResult.recordset.length === 0) {
-      console.error("Assignee not found in EMP table");
-      return res
-        .status(404)
-        .json({ message: "Assignee not found in EMP table" });
-    }
+      if (assigneeEmailResult.recordset.length === 0) {
+        console.error("Assignee not found in EMP table");
+        return res
+          .status(404)
+          .json({ message: "Assignee not found in EMP table" });
+      }
 
-    const assigneeEmail = assigneeEmailResult.recordset[0].EmpEmail;
+      const assigneeEmail = assigneeEmailResult.recordset[0].EmpEmail;
 
-    // Send email to assignee with attachments included
-    const assigneeSubject = `New Ticket Assigned to You - ${title}`;
-    const assigneeContent = `<p>A new ticket has been assigned to you with Ticket Number: ${ticketNumber}</p>
+      // Send email to assignee with attachments included
+      const assigneeSubject = `New Ticket Assigned to You - ${title}`;
+      const assigneeContent = `<p>A new ticket has been assigned to you with Ticket Number: ${ticketNumber}</p>
           <p>Details:</p>
           <p>Title: ${title}</p>
           <p>Description: ${description}</p>`;
-    await sendEmail(assigneeEmail, assigneeSubject, assigneeContent, req.files || []);
-    console.log(`Notification email sent to assignee: ${assigneeEmail}`);
+      await sendEmail(
+        assigneeEmail,
+        assigneeSubject,
+        assigneeContent,
+        req.files || []
+      );
+      console.log(`Notification email sent to assignee: ${assigneeEmail}`);
 
-    res.status(200).json({ message: "Ticket created and emails sent successfully" });
-  } catch (error) {
-    console.error("Error creating ticket:", error);
-    res.status(500).json({ message: "Server error" });
+      res
+        .status(200)
+        .json({ message: "Ticket created and emails sent successfully" });
+    } catch (error) {
+      console.error("Error creating ticket:", error);
+      res.status(500).json({ message: "Server error" });
+    }
   }
-});
+);
 
 app.use("/uploads", express.static("uploads"));
 
@@ -668,12 +700,13 @@ app.post("/api/forgot-password", async (req, res) => {
   }
 });
 
-// 
+//
 app.get("/api/isAssignee", async (req, res) => {
   const { empID } = req.query;
   try {
     await sql.connect(dbConfig);
-    const result = await sql.query`SELECT COUNT(*) as count FROM Assignee WHERE Assignee_EmpID = ${empID}`;
+    const result =
+      await sql.query`SELECT COUNT(*) as count FROM Assignee WHERE Assignee_EmpID = ${empID}`;
     const isAssignee = result.recordset[0].count > 0;
     res.status(200).json({ isAssignee });
   } catch (error) {
@@ -698,8 +731,7 @@ app.get("/api/tickets", async (req, res) => {
         LEFT JOIN EMP A ON T.Assignee_EmpID = A.EmpID
         WHERE T.Assignee_EmpID = ${empID}
       `;
-    }
-     else if (mode === "assignedByMe") {
+    } else if (mode === "assignedByMe") {
       ticketsResult = await sql.query`
         SELECT 
           T.*,
@@ -1108,7 +1140,6 @@ app.post("/api/update-ticket", async (req, res) => {
   }
 });
 
-
 /******************************************/
 /** PRODUCTION-READY RESPOND-RESOLUTION ENDPOINT **/
 /******************************************/
@@ -1197,7 +1228,6 @@ app.post("/api/tickets/respond-resolution", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // New route: Auto-close tickets that have remained in "Resolved" state for 7+ days
 app.post("/api/auto-close-tickets", async (req, res) => {
@@ -1453,6 +1483,12 @@ app.get("/api/getHODForDept", async (req, res) => {
   }
 });
 
+// Logout endpoint
+app.post("/api/logout", (req, res) => {
+  // Invalidate session here if applicable.
+  res.status(200).json({ message: "Logout successful" });
+});
+
 // Endpoint to fetch all employees in the logged-in user's department
 app.get("/api/team-structure", async (req, res) => {
   const { empID } = req.query;
@@ -1497,10 +1533,15 @@ const HOST = process.env.HOST || "0.0.0.0";
 
 const httpsOptions = {
   key: fs.readFileSync(path.join(__dirname, "certs", "mydomain.key"), "utf8"),
-  cert: fs.readFileSync(path.join(__dirname, "certs", "d466aacf3db3f299.crt"), "utf8"),
-  ca: fs.readFileSync(path.join(__dirname, "certs", "gd_bundle-g2-g1.crt"), "utf8")
+  cert: fs.readFileSync(
+    path.join(__dirname, "certs", "d466aacf3db3f299.crt"),
+    "utf8"
+  ),
+  ca: fs.readFileSync(
+    path.join(__dirname, "certs", "gd_bundle-g2-g1.crt"),
+    "utf8"
+  ),
 };
-
 
 const startServer = async () => {
   try {

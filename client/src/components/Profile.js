@@ -391,6 +391,11 @@ const CancelButton = styled.button`
   cursor: pointer;
 `;
 
+const tno = styled.th`
+  color: blue;
+  font-weight: bold;
+`;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState({});
@@ -742,18 +747,27 @@ const Dashboard = () => {
                 onChange={handleSearch}
               />
             </SearchBar>
-            <Button
-              active={viewMode === "assignedByMe"}
-              onClick={() => handleViewModeChange("assignedByMe")}
-            >
-              Assigned by Me
-            </Button>
-            {isAssignee && (
+            {isAssignee ? (
+              <>
+                <Button
+                  active={viewMode === "assignedByMe"}
+                  onClick={() => handleViewModeChange("assignedByMe")}
+                >
+                  Assigned by Me
+                </Button>
+                <Button
+                  active={viewMode === "assignedToMe"}
+                  onClick={() => handleViewModeChange("assignedToMe")}
+                >
+                  Assigned to Me
+                </Button>
+              </>
+            ) : (
               <Button
-                active={viewMode === "assignedToMe"}
-                onClick={() => handleViewModeChange("assignedToMe")}
+                active={true}
+                onClick={() => handleViewModeChange("assignedByMe")}
               >
-                Assigned to Me
+                My Tickets
               </Button>
             )}
           </ButtonGroup>
@@ -761,7 +775,7 @@ const Dashboard = () => {
           <Table>
             <thead>
               <tr>
-                <TableHeader>Ticket Number</TableHeader>
+                <TableHeader><tno>Ticket Number</tno></TableHeader>
                 <TableHeader>Creation Date</TableHeader>
                 <TableHeader>Ticket Title</TableHeader>
                 <TableHeader>Priority</TableHeader>
@@ -775,7 +789,7 @@ const Dashboard = () => {
             </thead>
             <tbody>
               {(filteredTickets || []).map((ticket) => (
-                <tr key={ticket.Ticket_Number}>
+                <tr key={ticket.Ticket_Number} onClick={() => handleActionClick(ticket)}>
                   <TableData>{ticket.Ticket_Number}</TableData>
                   <TableData>
                     {ticket.Creation_Date
@@ -824,6 +838,7 @@ const Dashboard = () => {
                   <TableData>
                     <ActionIcon onClick={() => handleActionClick(ticket)} />
                   </TableData>
+                  
                 </tr>
               ))}
             </tbody>

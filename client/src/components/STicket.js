@@ -423,7 +423,6 @@ const STicket = () => {
               <strong>Reporter Email:</strong> {ticket.Reporter_Email}
             </DetailRow>
 
-            {/* Display attachment if available */}
             {ticket.Attachment && (
               <DetailRow>
                 <strong>Attachment:</strong>
@@ -437,7 +436,7 @@ const STicket = () => {
               </DetailRow>
             )}
 
-            {/* Editable fields (only editable by assignee) */}
+            {/* Editable fields: Only assignee can change most fields */}
             <FormRow>
               <Label>Status:</Label>
               <Select
@@ -452,7 +451,6 @@ const STicket = () => {
               </Select>
             </FormRow>
 
-            {/* Resolution actions: only show if current user is the reporter */}
             {isReporter && updatedStatus === "Resolved" && (
               <div style={{ marginTop: "20px", marginBottom: "20px" }}>
                 <h3>
@@ -586,17 +584,18 @@ const STicket = () => {
               </Select>
             </FormRow>
 
+            {/* Remarks field now always enabled for both reporter and assignee */}
             <FormRow>
               <Label>Remarks:</Label>
               <TextArea
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Add any remarks (optional)"
-                disabled={!isAssignee}
               />
             </FormRow>
 
-            {isAssignee && (
+            {/* Show submit button for both assignee and reporter */}
+            {(isAssignee || isReporter) && (
               <SubmitButton type="button" onClick={(e) => handleUpdateTicket(e)}>
                 Submit
               </SubmitButton>

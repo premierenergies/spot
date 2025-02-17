@@ -144,7 +144,7 @@ const LandingPage = () => {
         <LeftHalf>
           <Heading>Welcome to SPOT</Heading>
           <Paragraph>
-            SPOT is an organization-wide, centralized ticketing tool. SPOT (Smart Processing of Tickets) will allow users to login using their Username and Password and raise tickets through a form. SPOT will track the complete lifecycle of a ticket.
+            SPOT (Smart Processing Of Tickets) is an organization-wide, centralized ticketing tool. This tool will allow users to login using their company email and raise tickets. SPOT will track the complete lifecycle of a ticket and help minimise response time.
           </Paragraph>
           <ButtonContainer>
             <ButtonGroup>

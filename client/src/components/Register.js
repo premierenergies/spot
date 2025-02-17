@@ -210,6 +210,16 @@ const Register = () => {
         setSuccessMessage("");
         return;
       }
+
+      const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/;
+      if (!passwordRegex.test(password)) {
+        setErrorMessage(
+          "Password must be at least 8 characters long and contain at least one number and one special character."
+        );
+        setSuccessMessage("");
+        return;
+      }
+      
       try {
         const response = await axios.post(`${API_BASE_URL}/api/register`, {
           email: emailUser,

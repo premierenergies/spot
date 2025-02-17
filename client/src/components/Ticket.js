@@ -6,15 +6,11 @@ import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL = window.location.origin;
 
+// Updated Container: flex-direction is now always row.
 const Container = styled.div`
   display: flex;
-  flex-direction: column;
   min-height: calc(100vh - 70px); /* Adjust for header height */
   background: linear-gradient(to bottom right, #f0f4f8, #d9e2ec);
-
-  @media (min-width: 768px) {
-    flex-direction: row;
-  }
 `;
 
 const TitleInput = styled.input`
@@ -160,7 +156,7 @@ const CreateTicketPage = () => {
   const [selectedTaskLabel, setSelectedTaskLabel] = useState("");
 
   const [ticketTitle, setTicketTitle] = useState("");
-  const [ticketType, setTicketType] = useState("");
+
   const [ticketPriority, setTicketPriority] = useState("");
   const [ticketDescription, setTicketDescription] = useState("");
 
@@ -180,7 +176,7 @@ const CreateTicketPage = () => {
     } else {
       setReporterEmail(storedUsername);
     }
-  }, []);
+  }, [navigate]);
 
   // Fetch departments on component mount
   useEffect(() => {
@@ -238,7 +234,7 @@ const CreateTicketPage = () => {
     setTaskLabels([]);
     setSelectedSubTask("");
     setSelectedTaskLabel("");
-  }, [selectedSubDepartment]);
+  }, [selectedSubDepartment, selectedDepartment]);
 
   // Fetch task labels when subtask changes
   useEffect(() => {
@@ -257,7 +253,7 @@ const CreateTicketPage = () => {
       setTaskLabels([]);
     }
     setSelectedTaskLabel("");
-  }, [selectedSubTask]);
+  }, [selectedSubTask, selectedSubDepartment, selectedDepartment]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -271,7 +267,6 @@ const CreateTicketPage = () => {
     // Create a FormData object and append all text fields
     const formData = new FormData();
     formData.append("title", ticketTitle);
-    formData.append("type", ticketType);
     formData.append("department", selectedDepartment);
     formData.append("subDepartment", selectedSubDepartment);
     formData.append("subTask", selectedSubTask);
@@ -297,7 +292,6 @@ const CreateTicketPage = () => {
 
         // Clear form fields
         setTicketTitle("");
-        setTicketType("");
         setSelectedDepartment("");
         setSelectedSubDepartment("");
         setSelectedSubTask("");
@@ -338,16 +332,7 @@ const CreateTicketPage = () => {
                 value={ticketTitle}
                 onChange={(e) => setTicketTitle(e.target.value)}
               />
-              <Select
-                required
-                value={ticketType}
-                onChange={(e) => setTicketType(e.target.value)}
-              >
-                <option value="">Ticket Type:</option>
-                <option value="Task">Task</option>
-                <option value="Issue">Issue</option>
-                <option value="Change Management">Change Management</option>
-              </Select>
+
               <Select
                 required
                 value={selectedDepartment}
@@ -377,7 +362,7 @@ const CreateTicketPage = () => {
                 value={selectedSubTask}
                 onChange={(e) => setSelectedSubTask(e.target.value)}
               >
-                <option value="">Subtask:</option>
+                <option value="">Category:</option>
                 {subTasks.map((subTask, index) => (
                   <option key={index} value={subTask}>
                     {subTask}
@@ -389,7 +374,7 @@ const CreateTicketPage = () => {
                 value={selectedTaskLabel}
                 onChange={(e) => setSelectedTaskLabel(e.target.value)}
               >
-                <option value="">Task Label:</option>
+                <option value="">Sub-Category:</option>
                 {taskLabels.map((label, index) => (
                   <option key={index} value={label}>
                     {label}
@@ -427,12 +412,10 @@ const CreateTicketPage = () => {
             <SubmitButton type="submit">Create Ticket</SubmitButton>
           </Form>
           {successMessage && (
-            <p style={{ color: "green", textAlign: "center" }}>
-              {successMessage}
-            </p>
+            <Message success>{successMessage}</Message>
           )}
           {errorMessage && (
-            <p style={{ color: "red", textAlign: "center" }}>{errorMessage}</p>
+            <Message>{errorMessage}</Message>
           )}
         </Content>
       </Container>
